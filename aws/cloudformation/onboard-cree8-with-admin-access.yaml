@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-01'
+Description: 'CloudFormation Template to onboard CREE8 with Admin Access'
+
+Parameters:
+  CREE8AccountId:
+    Type: String
+    Default: '321267487758'
+    Description: 'CREE8 Account ID'
+    AllowedPattern: '^\d{12}$'
+    ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
+  ExternalId:
+    Type: String
+    Description: 'Unique External ID - Share it with the CREE8 Team'
+    MinLength: 12
+    MaxLength: 1224
+    AllowedPattern: '[A-Za-z0-9\-_]+'
+    ConstraintDescription: 'Must be between 12 and 1224 characters and contain only alphanumeric, hyphen (-) and underscore (_) characters'
+
+Resources:
+  CREE8AdminRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'CREE8-Admin-Role'
+      Description: 'Cross-Account Role for CREE8 Platform Administration'
+      MaxSessionDuration: 28800
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/job-function/Billing'
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${CREE8AccountId}:root'
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'aws:PrincipalType': 'AWS'
+                'sts:ExternalId': !Ref ExternalId
+
+Outputs:
+  RoleARN:
+    Description: 'ARN of CREE8 Admin Role to share with the CREE8 Team'
+    Value: !GetAtt CREE8AdminRole.Arn

@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-01'
+Description: 'CloudFormation Template to onboard CREE8 with Minimal Access'
+
+Parameters:
+  CREE8AccountId:
+    Type: String
+    Default: '321267487758'
+    Description: 'CREE8 Account ID'
+    AllowedPattern: '^\d{12}$'
+    ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
+  ExternalId:
+    Type: String
+    Description: 'Unique External ID - Share it with the CREE8 Team'
+    MinLength: 12
+    MaxLength: 1224
+    AllowedPattern: '[A-Za-z0-9\-_]+'
+    ConstraintDescription: 'Must be between 12 and 1224 characters and contain only alphanumeric, hyphen (-) and underscore (_) characters'
+
+Resources:
+  CREE8MinimalRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'CREE8-Minimal-Role'
+      Description: 'Cross-Account Role for CREE8 Platform Administration'
+      MaxSessionDuration: 28800
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${CREE8AccountId}:root'
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'aws:PrincipalType': 'AWS'
+                'sts:ExternalId': !Ref ExternalId
+
+  MinimalRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: 'CREE8-Minimal-Role-Policy'
+      Roles:
+        - !Ref CREE8MinimalRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ec2:*'
+              - 'sns:*'
+              - 'lambda:*'
+              - 'route53:*'
+              - 's3:*'
+              - 'vpc:*'
+              - 'elasticfilesystem:*'
+              - 'fsx:*'
+              - 'storagegateway:*'
+              - 'aws-marketplace:*'
+              - 'aws-marketplace-management:*'
+              - 'elastic-inference:*'
+              - 'elasticloadbalancing:*'
+              - 'globalaccelerator:*'
+              - 'cloudwatch:*'
+              - 'logs:*'
+              - 'events:*'
+              - 'iam:PassRole'
+              - 'cloudtrail:*'
+              - 'autoscaling:*'
+              - 'application-autoscaling:*'
+              - 'schemas:*'
+              - 'states:*'
+              - 'pipes:*'
+              - 'scheduler:*'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'iam:CreateServiceLinkedRole'
+            Resource: 'arn:aws:iam::*:role/aws-service-role/*'
+            Condition:
+              StringLike:
+                'iam:AWSServiceName': [
+                  'ec2.amazonaws.com',
+                  'elasticloadbalancing.amazonaws.com',
+                  'spot.amazonaws.com',
+                  'spotfleet.amazonaws.com',
+                  'transitgateway.amazonaws.com',
+                  'fsx.amazonaws.com',
+                  'storagegateway.amazonaws.com',
+                  'events.amazonaws.com',
+                  'autoscaling.amazonaws.com',
+                  'application-autoscaling.amazonaws.com'
+                ]
+
+Outputs:
+  RoleARN:
+    Description: 'ARN of CREE8 Minimal Access Role to share with the CREE8 Team'
+    Value: !GetAtt CREE8MinimalRole.Arn
