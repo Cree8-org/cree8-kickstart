@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-01'
+AWSTemplateFormatVersion: '2010-09-09'
 Description: 'CloudFormation Template to onboard CREE8 with Minimal Access'
 
 Parameters:
@@ -8,13 +8,6 @@ Parameters:
     Description: 'CREE8 Account ID'
     AllowedPattern: '^\d{12}$'
     ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
-  ExternalId:
-    Type: String
-    Description: 'Unique External ID - Share it with the CREE8 Team'
-    MinLength: 12
-    MaxLength: 1224
-    AllowedPattern: '[A-Za-z0-9\-_]+'
-    ConstraintDescription: 'Must be between 12 and 1224 characters and contain only alphanumeric, hyphen (-) and underscore (_) characters'
 
 Resources:
   CREE8MinimalRole:
@@ -30,10 +23,6 @@ Resources:
             Principal:
               AWS: !Sub 'arn:aws:iam::${CREE8AccountId}:root'
             Action: 'sts:AssumeRole'
-            Condition:
-              StringEquals:
-                'aws:PrincipalType': 'AWS'
-                'sts:ExternalId': !Ref ExternalId
 
   MinimalRolePolicy:
     Type: 'AWS::IAM::Policy'

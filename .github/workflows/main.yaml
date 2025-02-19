@@ -1,0 +1,32 @@
+---
+name: "Production"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 20
+    steps:
+      - name: Setup - Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup - AWS Login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy to CloudFront
+        run: |
+          aws s3 sync ./aws/cloudformation/ s3://${{ vars.S3_BUCKET }}/ --delete
