@@ -1,6 +1,6 @@
-resource "aws_iam_role" "main" {
-  name                 = "CREE8-CrossAccount-Admin-Role"
-  description          = "Cross-account role for CREE8 platform administration"
+resource "aws_iam_role" "service" {
+  name                 = "CREE8-Service-Role"
+  description          = "Cross-account role assumed by the CREE8 platform/application to manage AWS infrastructure resources (ExternalId required)."
   max_session_duration = 3600
 
   assume_role_policy = jsonencode({
@@ -23,15 +23,8 @@ resource "aws_iam_role" "main" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "admin" {
-  count      = var.grant_admin_access ? 1 : 0
-  role       = aws_iam_role.main.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
-
-resource "aws_iam_policy" "minimal" {
-  count       = var.grant_admin_access ? 0 : 1
-  name        = "CREE8-Minimal-Role-Policy"
+resource "aws_iam_policy" "service_minimal" {
+  name        = "CREE8-Service-Role-Policy"
   description = "CREE8 Platform Minimal Access Policy"
 
   policy = jsonencode({
@@ -93,13 +86,36 @@ resource "aws_iam_policy" "minimal" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "minimal" {
-  count      = var.grant_admin_access ? 0 : 1
-  role       = aws_iam_role.main.name
-  policy_arn = aws_iam_policy.minimal.arn
+resource "aws_iam_role_policy_attachment" "service_minimal" {
+  role       = aws_iam_role.service.name
+  policy_arn = aws_iam_policy.service_minimal.arn
 }
 
-resource "aws_iam_role_policy_attachment" "billing" {
-  role       = aws_iam_role.main.name
+resource "aws_iam_role" "admin" {
+  name                 = "CREE8-Admin-Role"
+  description          = "Cross-account role assumed by CREE8 Support Engineers to login, debug, patch and manage the CREE8 Platform within this AWS account."
+  max_session_duration = 28800
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${var.cree8_account_id}:root"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "admin_administrator" {
+  role       = aws_iam_role.admin.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "admin_billing" {
+  role       = aws_iam_role.admin.name
   policy_arn = "arn:aws:iam::aws:policy/job-function/Billing"
 }
