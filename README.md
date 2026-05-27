@@ -1,9 +1,8 @@
 ## CREE8 KickStart: for Bring Your Own Cloud (BYOC)
 
-This repository hosts IaC for BYOC customers to onboard their AWS, Azure, or GCP accounts to the CREE8 Platform.
+This repository hosts IaC for BYOC customers to onboard their AWS accounts for the CREE8 Platform.
 
 ### Overview
-
 Onboarding provisions two cross-account IAM roles in your account. Both roles trust the CREE8 AWS account (`321267487758`) so that CREE8 can operate the platform on your behalf. They have different purposes and very different trust/permission profiles:
 
 | Role | Used By | Trust | Permissions |
@@ -11,13 +10,12 @@ Onboarding provisions two cross-account IAM roles in your account. Both roles tr
 | `CREE8-Service-Role` | The **CREE8 Application** (automation) — to manage AWS infrastructure resources inside your account (compute, network, storage, etc.) | CREE8 account + **`ExternalId` required** | Minimal least-privilege policy (EC2, VPC, S3, FSx, Route53, Lambda, CloudWatch, ...) |
 | `CREE8-Admin-Role` | **CREE8 Support Engineers** — to login to your AWS account for support, patching, debugging and managing the CREE8 Platform | CREE8 account (no `ExternalId`) | `AdministratorAccess` + `Billing` |
 
-Both roles are always created together. The `ExternalId` only applies to `CREE8-Service-Role`; you must generate a unique value and share it with the CREE8 Team along with both Role ARNs.
+The `ExternalId` only applies to `CREE8-Service-Role`; you must generate a unique value and share it with the CREE8 Team along with both Role ARNs.
 
 ### AWS
 
 #### Automated via CloudFormation
-
-Click the Launch Stack button below. It creates both roles in a single stack.
+While already logged in to the AWS Console of the desired AWS Account → Click the Launch Stack button below. It creates the necessary IAM Roles.
 
 [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=CREE8IAMAccess&templateURL=https://cree8-kickstart.s3.us-east-1.amazonaws.com/onboard-cree8.yaml)
 
@@ -35,28 +33,20 @@ See [`aws/terraform/README.md`](./aws/terraform/README.md).
 
 #### Manual via AWS Console
 
-If you prefer to create the roles by hand, repeat the following twice — once for each role.
+If you prefer to create the roles by hand, create only the `CREE8-Admin-Role` for CREE8 Support Engineers.
 
 1. Navigate to [AWS IAM Console > Roles](https://console.aws.amazon.com/iam/home#/roles)
 2. Click **Create role**
 3. Select **AWS account** → **Another AWS account**
 4. Enter the CREE8 Account ID: `321267487758`
 
-##### Role 1 — `CREE8-Service-Role` (for the CREE8 Application)
+##### Role: `CREE8-Admin-Role` (for CREE8 Support Engineers)
 
-5. Check **Require external ID** and enter a unique value you generate (12–1224 chars, `[A-Za-z0-9_-]`). Save it — you'll share it with CREE8.
-6. Click **Next**, then create and attach a customer-managed policy named `CREE8-Service-Role-Policy` matching the document in [`aws/cloudformation/onboard-cree8.yaml`](./aws/cloudformation/onboard-cree8.yaml) (the `Policies` block under `CREE8ServiceRole`).
-7. Name the role: `CREE8-Service-Role`
-8. Click **Create role**
-
-##### Role 2 — `CREE8-Admin-Role` (for CREE8 Support Engineers)
-
-5. Leave **Require external ID** unchecked.
-6. Click **Next** and attach these AWS-managed policies:
+5. Click **Next** and attach these AWS-managed policies:
    - `AdministratorAccess`
    - `Billing`
-7. Name the role: `CREE8-Admin-Role`
-8. Click **Create role**
+6. Name the role: `CREE8-Admin-Role`
+7. Click **Create role**
 
 ##### Share with CREE8
 
