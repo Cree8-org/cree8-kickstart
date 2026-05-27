@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Onboard this AWS account to the CREE8 Platform. Creates two cross-account IAM
+  roles: CREE8-Service-Role (used by the CREE8 application, ExternalId required,
+  minimal permissions) and CREE8-Admin-Role (used by CREE8 Support Engineers,
+  AdministratorAccess + Billing).
+
+Parameters:
+  CREE8AccountId:
+    Type: String
+    Default: '321267487758'
+    Description: 'CREE8 AWS Account ID (trusted principal for both roles)'
+    AllowedPattern: '^\d{12}$'
+    ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
+
+  ExternalId:
+    Type: String
+    Description: >-
+      Unique ExternalId required when CREE8-Service-Role is assumed. Generate a
+      random string (12-1224 alphanumeric, hyphen or underscore characters) and
+      share it with the CREE8 Team.
+    NoEcho: true
+    MinLength: 12
+    MaxLength: 1224
+    AllowedPattern: '^[A-Za-z0-9\-_]{12,1224}$'
+    ConstraintDescription: 'Must be 12-1224 characters: alphanumeric, hyphen (-) or underscore (_)'
+
+Resources:
+  CREE8ServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'CREE8-Service-Role'
+      Description: >-
+        Cross-account role assumed by the CREE8 platform/application to manage
+        AWS infrastructure resources within this account. Requires ExternalId.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${CREE8AccountId}:root'
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'aws:PrincipalType': 'AWS'
+                'sts:ExternalId': !Ref ExternalId
+      Policies:
+        - PolicyName: 'CREE8-Service-Role-Policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                  - 'sns:*'
+                  - 'lambda:*'
+                  - 'route53:*'
+                  - 's3:*'
+                  - 'vpc:*'
+                  - 'elasticfilesystem:*'
+                  - 'fsx:*'
+                  - 'storagegateway:*'
+                  - 'aws-marketplace:*'
+                  - 'aws-marketplace-management:*'
+                  - 'elastic-inference:*'
+                  - 'elasticloadbalancing:*'
+                  - 'globalaccelerator:*'
+                  - 'cloudwatch:*'
+                  - 'logs:*'
+                  - 'events:*'
+                  - 'iam:PassRole'
+                  - 'cloudtrail:*'
+                  - 'autoscaling:*'
+                  - 'application-autoscaling:*'
+                  - 'schemas:*'
+                  - 'states:*'
+                  - 'pipes:*'
+                  - 'scheduler:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:CreateServiceLinkedRole'
+                Resource: 'arn:aws:iam::*:role/aws-service-role/*'
+                Condition:
+                  StringLike:
+                    'iam:AWSServiceName':
+                      - 'ec2.amazonaws.com'
+                      - 'elasticloadbalancing.amazonaws.com'
+                      - 'spot.amazonaws.com'
+                      - 'spotfleet.amazonaws.com'
+                      - 'transitgateway.amazonaws.com'
+                      - 'fsx.amazonaws.com'
+                      - 'storagegateway.amazonaws.com'
+                      - 'events.amazonaws.com'
+                      - 'autoscaling.amazonaws.com'
+                      - 'application-autoscaling.amazonaws.com'
+
+  CREE8AdminRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'CREE8-Admin-Role'
+      Description: >-
+        Cross-account role assumed by CREE8 Support Engineers to login, debug,
+        patch and manage the CREE8 Platform within this AWS account.
+      MaxSessionDuration: 28800
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+        - 'arn:aws:iam::aws:policy/job-function/Billing'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${CREE8AccountId}:root'
+            Action: 'sts:AssumeRole'
+
+Outputs:
+  ServiceRoleArn:
+    Description: 'ARN of CREE8-Service-Role (for the CREE8 Application). Share with the CREE8 Team.'
+    Value: !GetAtt CREE8ServiceRole.Arn
+  AdminRoleArn:
+    Description: 'ARN of CREE8-Admin-Role (for CREE8 Support Engineers). Share with the CREE8 Team.'
+    Value: !GetAtt CREE8AdminRole.Arn

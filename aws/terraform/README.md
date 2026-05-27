@@ -1,26 +1,31 @@
-## CREE8 KickStart: for Bring Your Own Cloud (BYOC)
+## CREE8 KickStart: AWS Terraform
 
-This repository hosts IaaC for the BYOC Customers to onboard their accounts to the CREE8 platform.
+This module onboards an AWS account to the CREE8 Platform by creating **two** cross-account IAM roles:
 
-### Overview
-The CREE8 Platform support Bring Your Own Cloud (BYOC) for AWS, Azure, and GCP. This repository hosts the IaaC for the BYOC Customers to onboard their accounts to the CREE8 platform.
+- `CREE8-Service-Role` — assumed by the **CREE8 Application** to manage AWS infrastructure resources within your account. Trust policy requires an `ExternalId`. Attached with a least-privilege managed policy.
+- `CREE8-Admin-Role` — assumed by **CREE8 Support Engineers** to login to your AWS account for support, patching, debugging and managing the CREE8 Platform. Trust policy does not use `ExternalId`. Attached with `AdministratorAccess` and `Billing`.
 
-CREE8 recommends onboarding with Admin and Billing Access for CREE8 Team to manage the Infrastructure and Billing efficiently. If your organizatiion policy restricts Administrator Access, you can onboard with Minimal Access. We still recommend to have Billing Access to manage the billing efficiently.
+Both roles are created on every apply.
 
-### AWS
+### Prerequisites
 
-#### Automated via Terraform
+- [Terraform](https://developer.hashicorp.com/terraform/downloads)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) configured with credentials that can create IAM roles/policies in the target account
 
-##### Prerequisites:
-- Terraform - [Install Terraform](https://developer.hashicorp.com/terraform/downloads)
-- AWS CLI (with IAM Access) - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-- Configure AWS CLI with Access to the desired AWS Account (BYOC)
+### Steps
 
-##### Steps:
 1. Clone the repository
-2. Navigate to the `aws/terraform` directory
-3. Run `export AWS_PROFILE=<your-profile-name>` if using named profiles
-3. Run `terraform init`
-4. Run `terraform apply`
+2. `cd aws/terraform`
+3. `export AWS_PROFILE=<your-profile-name>` (if using named profiles)
+4. `terraform init`
+5. `terraform apply -var 'external_id=<your-unique-external-id>'`
 
-Once the `terraform apply` is complted. The output will have the Role ARN. Share the Role ARN with the CREE8 Team.
+`external_id` must be 12–1224 characters and contain only alphanumeric, `-`, or `_` characters. Keep it secret and share it with the CREE8 Team over a secure channel.
+
+### Outputs
+
+After `terraform apply` completes, share the following with the CREE8 Team:
+
+- `cree8_service_role_arn`
+- `cree8_admin_role_arn`
+- The `external_id` you used
